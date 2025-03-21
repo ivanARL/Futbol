@@ -8,8 +8,8 @@ if __name__ == "__main__":
         .appName("Country Name Analysis") \
         .getOrCreate()
 
-    print("Cargando dataset.csv ... ")
-    path_countries = "dataset.csv"
+    print("Cargando former_names.csv ... ")
+    path_countries = "former_names.csv"
     
     # Leer el dataset con el nuevo formato
     df_countries = spark.read.csv(path_countries, header=True, inferSchema=True)
