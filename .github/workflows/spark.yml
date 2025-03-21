@@ -32,7 +32,12 @@ jobs:
         spark-version: '3.5.3'
         hadoop-version: '3'
 
-    - run: spark-submit --version
+    #- run: spark-submit --version
+    - run: wget -O dataset.csv https://raw.githubusercontent.com/ivanARL/Futbol/refs/heads/main/former_names.csv   
+    - run: ls -la
+    - run: spark-submit --master local people.py 
+
+    
     - run: spark-submit --master local Country-Name-soccer.py
     - run: ls -la  
 
