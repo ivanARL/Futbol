@@ -3,6 +3,14 @@ from pyspark.sql.functions import to_date
 import json
 import os
 
+# Crear el directorio 'results' si no existe
+os.makedirs("results", exist_ok=True)
+
+# Guardar los resultados como JSON
+results = df_countries_1950_1970.toJSON().collect()
+with open('results/countries_1950_1970.json', 'w') as file:
+    json.dump(results, file)
+
 if __name__ == "__main__":
     # Iniciar Spark
     spark = SparkSession \
