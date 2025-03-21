@@ -6,38 +6,52 @@ import os
 # Crear el directorio 'results' si no existe
 os.makedirs("results", exist_ok=True)
 
-# Guardar los resultados como JSON
-results = df_countries_1950_1970.toJSON().collect()
-with open('results/countries_1950_1970.json', 'w') as file:
-    json.dump(results, file)
+# Iniciar Spark
+spark = SparkSession.builder.appName("Country Name Analysis").getOrCreate()
 
-if __name__ == "__main__":
-    # Iniciar Spark
-    spark = SparkSession \
-        .builder \
-        .appName("Country Name Analysis") \
-        .getOrCreate()
-
-    print("Cargando former_names.csv ... ")
-    path_countries = "former_names.csv"
-    
-    # Verificar si el archivo existe
+def load_csv(path):
+    """Función para cargar el archivo CSV y manejar errores"""
     try:
-        df_countries = spark.read.csv(path_countries, header=True, inferSchema=True)
+        df = spark.read.csv(path, header=True, inferSchema=True)
+        return df
     except Exception as e:
         print(f"Error al leer el archivo CSV: {e}")
         spark.stop()
         exit(1)
+
+if __name__ == "__main__":
+    print("Cargando former_names.csv ... ")
+    path_countries = "former_names.csv"
     
-    # Ver esquema del DataFrame
+    # Verificar si el archivo existe
+    if not os.path.exists(path_countries):
+        print(f"El archivo {path_countries} no se encuentra en la ruta especificada.")
+        spark.stop()
+        exit(1)
+
+    # Cargar el CSV
+    df_countries = load_csv(path_countries)
+    
+    # Verificar esquema y mostrar los primeros registros
     df_countries.printSchema()
     df_countries.show(5)
 
-    # Convertir columnas de fecha a tipo Date
+    # Asegurarse de que las columnas 'start_date' y 'end_date' existen
+    if "start_date" not in df_countries.columns or "end_date" not in df_countries.columns:
+        print("Las columnas 'start_date' y/o 'end_date' no están presentes en el archivo CSV.")
+        spark.stop()
+        exit(1)
+
+    # Convertir columnas de fecha a tipo Date, manejar posibles errores
     df_countries = df_countries.withColumn("start_date", to_date(df_countries["start_date"], "yyyy-MM-dd"))
     df_countries = df_countries.withColumn("end_date", to_date(df_countries["end_date"], "yyyy-MM-dd"))
+
+    # Verificar si la conversión fue exitosa
+    df_countries.show(5)
+
+    # Crear vista temporal para consultas SQL
     df_countries.createOrReplaceTempView("countries")
-    
+
     # Describir el DataFrame
     spark.sql('DESCRIBE countries').show(20)
 
@@ -56,9 +70,6 @@ if __name__ == "__main__":
                ORDER BY start_date"""
     df_countries_1950_1970 = spark.sql(query)
     df_countries_1950_1970.show(20)
-
-    # Crear el directorio results si no existe
-    os.makedirs('results', exist_ok=True)
 
     # Guardar los resultados como JSON
     results = df_countries_1950_1970.toJSON().collect()
@@ -86,4 +97,5 @@ if __name__ == "__main__":
 
     # Detener Spark al finalizar
     spark.stop()
+
 
