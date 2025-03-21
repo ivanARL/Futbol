@@ -1,5 +1,7 @@
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import to_date
 import json
+import os
 
 if __name__ == "__main__":
     # Iniciar Spark
@@ -11,15 +13,25 @@ if __name__ == "__main__":
     print("Cargando former_names.csv ... ")
     path_countries = "former_names.csv"
     
-    # Leer el dataset con el nuevo formato
-    df_countries = spark.read.csv(path_countries, header=True, inferSchema=True)
+    # Verificar si el archivo existe
+    try:
+        df_countries = spark.read.csv(path_countries, header=True, inferSchema=True)
+    except Exception as e:
+        print(f"Error al leer el archivo CSV: {e}")
+        spark.stop()
+        exit(1)
+    
+    # Ver esquema del DataFrame
+    df_countries.printSchema()
+    df_countries.show(5)
 
-    # Renombrar las columnas si es necesario (en este caso no es necesario, pero es posible que se requiera un ajuste)
+    # Convertir columnas de fecha a tipo Date
+    df_countries = df_countries.withColumn("start_date", to_date(df_countries["start_date"], "yyyy-MM-dd"))
+    df_countries = df_countries.withColumn("end_date", to_date(df_countries["end_date"], "yyyy-MM-dd"))
     df_countries.createOrReplaceTempView("countries")
-
-    # Describir el DataFrame para ver las columnas y sus tipos
-    query = 'DESCRIBE countries'
-    spark.sql(query).show(20)
+    
+    # Describir el DataFrame
+    spark.sql('DESCRIBE countries').show(20)
 
     # Consulta 1: Mostrar países donde el nombre antiguo es 'Dahomey'
     query = """SELECT current, former, start_date, end_date 
@@ -36,6 +48,9 @@ if __name__ == "__main__":
                ORDER BY start_date"""
     df_countries_1950_1970 = spark.sql(query)
     df_countries_1950_1970.show(20)
+
+    # Crear el directorio results si no existe
+    os.makedirs('results', exist_ok=True)
 
     # Guardar los resultados como JSON
     results = df_countries_1950_1970.toJSON().collect()
@@ -63,3 +78,4 @@ if __name__ == "__main__":
 
     # Detener Spark al finalizar
     spark.stop()
+
