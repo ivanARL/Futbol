@@ -33,7 +33,7 @@ jobs:
         hadoop-version: '3'
 
     - run: spark-submit --version
-    - run: spark-submit --main local Country-Name-soccer.py
+    - run: spark-submit --master local Country-Name-soccer.py
     - run: ls -la  
 
 
